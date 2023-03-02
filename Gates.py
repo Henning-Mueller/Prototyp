@@ -42,7 +42,7 @@ class Gate(Component):
 
         else:
             print("ERROR Alle inputs schon voll")
-        #print(str(self.inputs))
+
 
 class And(Gate):
 

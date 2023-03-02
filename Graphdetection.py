@@ -1,7 +1,5 @@
-import copy
 import math
 import os
-
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -15,28 +13,18 @@ from termcolor import colored
 
 def start(soloparam = "f4746511-2473-46b0-814f-395498b94de4"):
     detection_model, category_index = loadModel()
-    # TimeList = []
-    startsolo(detection_model, category_index, soloparam)
-    # for _ in range(20):
-    #     TimeList += startall(detection_model, category_index)
-    # #startsolo(detection_model, category_index, soloparam)
-    # del TimeList[0]
-    # print(TimeList)
-    # print(str(len(TimeList)))
-    # print(str(sum(TimeList)/len(TimeList)))
+    #startsolo(detection_model, category_index, soloparam)
+    startall(detection_model, category_index)
 def startall(detection_model, category_index):
-    TimeList= []
 
     for i in os.listdir("images"):
         start_time = time.time()
         startsolo(detection_model, category_index,str(i))
         end_time = time.time()
         spent_time = round(end_time - start_time,2)
-        #print(spent_time)
-        TimeList.append(spent_time)
+
         print("Es wurden " + str(spent_time) +" Sekunden für die Verarbeitung des Bildes benötigt")
         print("\n")
-    return TimeList
 
 
 
@@ -46,7 +34,7 @@ def startsolo(detection_model, category_index,IMAGE_name):
     global MINSCORE
     global def_dir_offset
     MINSCORE = 0.75
-    def_dir_offset = 4
+    def_dir_offset = 6
     IMAGE_NAME = IMAGE_name
     IMAGE_PATH = os.path.join("images", IMAGE_NAME)
     print("Image: " + colored(IMAGE_NAME,"blue") + " with Min-Detections-Score of: " + str(MINSCORE))
@@ -75,17 +63,11 @@ Läd das Trainierte ObjectDetection Model
 Output: Labelset und Model
 """
 def loadModel():
-    # Patches
     utils_ops.tf = tf.compat.v1
-    # Patch the location of gfile
     tf.gfile = tf.io.gfile
-
-    #Import labels and model
     PATH_TO_LABELS = 'SSDMobileNet/label_map.pbtxt'
     category_index = label_map_util.create_category_index_from_labelmap(PATH_TO_LABELS, use_display_name=True)
     detection_model = tf.saved_model.load('SSDMobileNet/saved_model')
-
-    # Restore checkpoint
     ckpt = tf.compat.v2.train.Checkpoint(model=detection_model)
     ckpt.restore('SSDMobileNet/checkpoint/ckpt-0').expect_partial()
     return detection_model,category_index
@@ -107,21 +89,14 @@ Output: Das Detection Array mit allen Informationen über die Detections
 def run_inference(model, image_np):
     image_np = np.asarray(image_np)
     image_np = cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-    # The input needs to be a tensor, convert it using tf.convert_to_tensor.
     input_tensor = tf.convert_to_tensor(image_np)
-    # The model expects a batch of images, so add an axis with tf.newaxis.
     input_tensor = input_tensor[tf.newaxis,...]
-    # Run detection
     model_fn = model.signatures['serving_default']
     output_dict = model_fn(input_tensor)
-    # All outputs are batches tensors.
-    # Convert to numpy arrays, and take index [0] to remove the batch dimension.
-    # We're only interested in the first num_detections.
     num_detections = int(output_dict.pop('num_detections'))
     output_dict = {key: value[0, :num_detections].numpy()
                  for key, value in output_dict.items()}
     output_dict['num_detections'] = num_detections
-    # detection_classes should be ints.
     output_dict['detection_classes'] = output_dict['detection_classes'].astype(np.int64)
     return output_dict
 
@@ -231,7 +206,6 @@ Classifizierung der einzelnen Pixel im Bild
 """
 def getclassifiedpixels(skel):
     classified_pixels = np.zeros((skel.shape[0], skel.shape[1]))
-    #Todo port_pixels zu NP Array
     port_pixels = []
     for x in range(1, skel.shape[0] - 1):
         for y in range(1, skel.shape[1] - 1):
@@ -478,7 +452,6 @@ Gibt den Eintrittsvektor der einzelen Lininenabschitte welche an einer Kreuzung 
 def get_section_dir(sections,crossing_pixel):
     sectiondirs = []
     for cur_section in sections:
-        # if crossing pixel is already visited, then continue
         if len(cur_section) < def_dir_offset:
             if (len(cur_section) <= 1):
                 print("Linienabschnitslänge ist zu klein")
@@ -525,11 +498,9 @@ def merge_crossings(sectiondirs, crossing_pixel, merged_sections):
                 continue
             angle.append([calcangle(first_section[1], other_section[1]), other_section[0]])
         angle.sort(key=lambda x: x[0], reverse=True)
-        # Todo check for Reverse
         skip_sections.append(angle[0][1])
         if np.array_equal(first_section[0][-1], np.array(crossing_pixel)):
             if np.array_equal(angle[0][1][-1], np.array(crossing_pixel)):
-                # ToDo check revese auf fehler
                 first_section[0].reverse()
                 merged_sections.append(angle[0][1] + first_section[0][1:])
             elif np.array_equal(angle[0][1][0], np.array(crossing_pixel)):
