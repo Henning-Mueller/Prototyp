@@ -1,0 +1,32 @@
+item { 
+	name:'switch_True'
+	id:1
+}
+item { 
+	name:'switch_False'
+	id:2
+}
+item { 
+	name:'and'
+	id:3
+}
+item { 
+	name:'or'
+	id:4
+}
+item { 
+	name:'nand'
+	id:5
+}
+item { 
+	name:'nor'
+	id:6
+}
+item { 
+	name:'not'
+	id:7
+}
+item { 
+	name:'bulb'
+	id:8
+}
